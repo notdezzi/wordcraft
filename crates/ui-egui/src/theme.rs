@@ -232,7 +232,8 @@ impl Tokens {
             checked: Color32::from_rgb(0x2E, 0x3A, 0x66),
             accent: Color32::from_rgb(0x7A, 0x93, 0xF0),
             accent_text: Color32::from_rgb(0x9C, 0xB0, 0xF5),
-            on_accent: Color32::WHITE,
+            // Dark ink on the light accent; white fails contrast there (#655).
+            on_accent: Color32::from_rgb(0x0D, 0x14, 0x2B),
             input: Color32::from_rgb(0x1E, 0x1E, 0x1E),
             input_border: Color32::from_rgb(0x58, 0x58, 0x58),
             group_label: Color32::from_rgb(0xA0, 0xA0, 0xA0),
@@ -495,6 +496,8 @@ pub fn c32(c: wordcraft_doc::Rgb) -> Color32 {
 mod tests {
     use std::collections::BTreeSet;
 
+    use super::{Color32, Tokens};
+
     /// Symbols written as text in the interface code must exist in the interface fonts (Inter and
     /// egui's emoji fallbacks); a missing glyph draws as an empty box, as the panes' "✕" close
     /// button once did. Letters are the catalogs' business (see the i18n font tests).
@@ -538,5 +541,31 @@ mod tests {
             symbols.iter().filter(|(c, _)| !f.has_glyph(&font, *c)).map(|(c, file)| format!("{c} U+{:04X} in {file}", *c as u32)).collect()
         });
         assert!(missing.is_empty(), "symbols without a glyph: {missing:#?}");
+    }
+
+    /// WCAG 2.x relative luminance of a colour.
+    fn luminance(c: Color32) -> f32 {
+        fn channel(v: u8) -> f32 {
+            let v = f32::from(v) / 255.0;
+            if v <= 0.03928 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) }
+        }
+        0.2126 * channel(c.r()) + 0.7152 * channel(c.g()) + 0.0722 * channel(c.b())
+    }
+
+    /// The WCAG contrast ratio of two colours: 1.0 for identical, 21.0 for black on white.
+    fn contrast_ratio(a: Color32, b: Color32) -> f32 {
+        let (hi, lo) = (luminance(a).max(luminance(b)), luminance(a).min(luminance(b)));
+        (hi + 0.05) / (lo + 0.05)
+    }
+
+    /// Everything drawn on the accent (Share button, avatar initials, AutoSave knob, keytip
+    /// badges, dialog primary buttons) must stay readable on it and on the `accent_text` hover
+    /// fill (#655).
+    #[test]
+    fn on_accent_passes_contrast_in_both_themes() {
+        for t in [Tokens::light(), Tokens::dark()] {
+            assert!(contrast_ratio(t.on_accent, t.accent) >= 4.5, "{t:?}: on_accent vs accent");
+            assert!(contrast_ratio(t.on_accent, t.accent_text) >= 4.5, "{t:?}: on_accent vs accent_text");
+        }
     }
 }
