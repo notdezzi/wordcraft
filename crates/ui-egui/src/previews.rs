@@ -222,8 +222,9 @@ fn snippet_blocks(
 /// tall: a line of sample text, or a small table for a table style.
 pub fn style_preview(app: &mut WordApp, ui: &mut Ui, id: &str, ty: &str, size: egui::Vec2) {
     let t = Tokens::get(ui.ctx());
+    let paper = if app.session.view.dark_mode { egui::Color32::from_gray(wordcraft_render::DARK_PAPER) } else { t.paper_tile };
     let (r, _) = ui.allocate_exact_size(size, Sense::hover());
-    ui.painter().rect(r, 3.0, egui::Color32::WHITE, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+    ui.painter().rect(r, 3.0, paper, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
     let rev = app.session.rev();
     let skey = app.previews.styles_key(&app.session.doc, rev);
     let ppp = ui.ctx().pixels_per_point();
@@ -263,13 +264,14 @@ pub fn style_preview(app: &mut WordApp, ui: &mut Ui, id: &str, ty: &str, size: e
         let sz = hd.size_vec2() / ppp;
         let ir = Rect::from_min_size(pos2(r.min.x + 2.0, r.min.y + 2.0), sz.min(r.size() - vec2(4.0, 4.0)));
         let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2((ir.width() / sz.x).min(1.0), (ir.height() / sz.y).min(1.0)));
-        ui.painter().with_clip_rect(r).image(hd.id(), ir, uv, egui::Color32::WHITE);
+        ui.painter().with_clip_rect(r).image(hd.id(), ir, uv, paper);
     }
 }
 
 /// The Home tab's Styles gallery.
 pub fn style_gallery(app: &mut WordApp, ui: &mut Ui, state: &Value) {
     let t = Tokens::get(ui.ctx());
+    let paper = if app.session.view.dark_mode { egui::Color32::from_gray(wordcraft_render::DARK_PAPER) } else { t.paper_tile };
     let current = state.get("style").and_then(Value::as_str).unwrap_or("Normal").to_string();
     let styles: Vec<(String, String)> = app.session.doc.styles.gallery().iter().map(|s| (s.id.clone(), crate::i18n::style_name(s))).collect();
     let rev = app.session.rev();
@@ -307,7 +309,7 @@ pub fn style_gallery(app: &mut WordApp, ui: &mut Ui, state: &Value) {
             let sz = h.size_vec2() / ppp;
             let ir = Rect::from_min_size(pos2(r.min.x + 3.0, r.min.y + 4.0), sz.min(vec2(68.0, 32.0)));
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2((ir.width() / sz.x).min(1.0), (ir.height() / sz.y).min(1.0)));
-            ui.painter().with_clip_rect(r).image(h.id(), ir, uv, egui::Color32::WHITE);
+            ui.painter().with_clip_rect(r).image(h.id(), ir, uv, paper);
         }
         let mut job = egui::text::LayoutJob::single_section(name.clone(), egui::TextFormat::simple(regular(10.5), t.text));
         job.wrap = egui::text::TextWrapping::truncate_at_width(r.width() - 6.0);
@@ -342,6 +344,7 @@ pub fn style_gallery(app: &mut WordApp, ui: &mut Ui, state: &Value) {
 /// Design tab: style set tiles.
 pub fn style_set_gallery(app: &mut WordApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
+    let paper = if app.session.view.dark_mode { egui::Color32::from_gray(wordcraft_render::DARK_PAPER) } else { t.paper_tile };
     let ppp = ui.ctx().pixels_per_point();
     for name in ["default", "basic", "lines", "shaded", "casual", "centered", "minimalist"] {
         let (r, resp) = ui.allocate_exact_size(vec2(56.0, crate::widgets::CONTENT_H), Sense::click());
@@ -364,7 +367,7 @@ pub fn style_set_gallery(app: &mut WordApp, ui: &mut Ui) {
             let ir = Rect::from_min_size(pos2(r.min.x + 3.0, r.min.y + 3.0), sz.min(vec2(50.0, 60.0)));
             ui.painter().rect_stroke(ir, 0.0, Stroke::new(1.0, t.border), egui::StrokeKind::Outside);
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2((ir.width() / sz.x).min(1.0), (ir.height() / sz.y).min(1.0)));
-            ui.painter().image(h.id(), ir, uv, egui::Color32::WHITE);
+            ui.painter().image(h.id(), ir, uv, paper);
         }
         if resp.on_hover_text(format!("Style set: {name}")).clicked() {
             let _ = app.run("design.styleSet", json!({"name": name}));
@@ -375,6 +378,7 @@ pub fn style_set_gallery(app: &mut WordApp, ui: &mut Ui) {
 /// Table Design: a tile previewing a table style.
 pub fn table_style_tile(ui: &mut Ui, app: &mut WordApp, style: &str) -> Response {
     let t = Tokens::get(ui.ctx());
+    let paper = if app.session.view.dark_mode { egui::Color32::from_gray(wordcraft_render::DARK_PAPER) } else { t.paper_tile };
     let ppp = ui.ctx().pixels_per_point();
     let (r, resp) = ui.allocate_exact_size(vec2(58.0, 46.0), Sense::click());
     if resp.hovered() {
@@ -398,7 +402,7 @@ pub fn table_style_tile(ui: &mut Ui, app: &mut WordApp, style: &str) -> Response
         let sz = h.size_vec2() / ppp;
         let ir = Rect::from_center_size(r.center(), sz.min(vec2(54.0, 42.0)));
         let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2((ir.width() / sz.x).min(1.0), (ir.height() / sz.y).min(1.0)));
-        ui.painter().image(h.id(), ir, uv, egui::Color32::WHITE);
+        ui.painter().image(h.id(), ir, uv, paper);
     }
     resp
 }

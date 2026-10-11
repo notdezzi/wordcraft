@@ -162,6 +162,9 @@ pub struct Tokens {
     pub find_highlight: Color32,
     pub caret: Color32,
     pub page_shadow: Color32,
+    /// Page tone of the gallery preview tiles (Styles, style sets, table styles, Manage Styles):
+    /// paper in the light theme, a dimmed page in the dark one (#663).
+    pub paper_tile: Color32,
     /// Selection-frame handles (pictures, shapes, text boxes) and their shadow.
     pub handle: Color32,
     pub handle_shadow: Color32,
@@ -204,6 +207,7 @@ impl Tokens {
             find_highlight: Color32::from_rgba_unmultiplied(0xFF, 0xE0, 0x3D, 0x90),
             caret: Color32::BLACK,
             page_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x22),
+            paper_tile: Color32::WHITE,
             handle: Color32::WHITE,
             handle_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x28),
             menu: Color32::WHITE,
@@ -245,6 +249,7 @@ impl Tokens {
             find_highlight: Color32::from_rgba_unmultiplied(0xC8, 0xA8, 0x00, 0x70),
             caret: Color32::BLACK,
             page_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x60),
+            paper_tile: Color32::from_rgb(0x4A, 0x50, 0x66),
             handle: Color32::from_rgb(0xF2, 0xF2, 0xF2),
             handle_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x5A),
             menu: Color32::from_rgb(0x2B, 0x2B, 0x2B),
@@ -567,5 +572,13 @@ mod tests {
             assert!(contrast_ratio(t.on_accent, t.accent) >= 4.5, "{t:?}: on_accent vs accent");
             assert!(contrast_ratio(t.on_accent, t.accent_text) >= 4.5, "{t:?}: on_accent vs accent_text");
         }
+    }
+
+    /// A gallery page preview shouldn't be the brightest thing in the dark UI (#663): the dark
+    /// tile tone sits well below white and differs from the light one.
+    #[test]
+    fn paper_tile_is_dimmed_in_the_dark_theme() {
+        assert_ne!(Tokens::light().paper_tile, Tokens::dark().paper_tile);
+        assert!(luminance(Tokens::dark().paper_tile) < 0.25 * luminance(Color32::WHITE));
     }
 }
