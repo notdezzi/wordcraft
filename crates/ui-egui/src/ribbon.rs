@@ -884,48 +884,7 @@ fn layout(app: &mut WordApp, ui: &mut Ui) {
             });
         });
     });
-    group(ui, "Paragraph", Some("para.dialog"), app, |ui, app| {
-        let rp = app.session.doc.para_at(&app.session.sel.focus).map(|p| app.session.doc.styles.resolve_para(&p.props));
-        let Some(rp) = rp else { return };
-        egui::Grid::new("layout_para").spacing(vec2(6.0, 4.0)).show(ui, |ui| {
-            ui.label(egui::RichText::new(tl!("Indent")).small().strong());
-            ui.label("");
-            ui.label(egui::RichText::new(tl!("Spacing")).small().strong());
-            ui.end_row();
-            let mut l = rp.indent_left / 72.0;
-            let mut b = rp.space_before;
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(tl!("Left:")).small());
-                if ui.add(egui::DragValue::new(&mut l).speed(0.05).range(-11.0..=22.0).suffix("\"").max_decimals(2)).changed() {
-                    let _ = app.run("para.indents", json!({"left": l * 72.0}));
-                }
-            });
-            ui.label("");
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(tl!("Before:")).small());
-                if ui.add(egui::DragValue::new(&mut b).speed(1.0).range(0.0..=1584.0).suffix(format!(" {}", tl!("pt")))).changed() {
-                    let _ = app.run("para.spacing", json!({"before": b}));
-                }
-            });
-            ui.end_row();
-            let mut r = rp.indent_right / 72.0;
-            let mut a = rp.space_after;
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(tl!("Right:")).small());
-                if ui.add(egui::DragValue::new(&mut r).speed(0.05).range(-11.0..=22.0).suffix("\"").max_decimals(2)).changed() {
-                    let _ = app.run("para.indents", json!({"right": r * 72.0}));
-                }
-            });
-            ui.label("");
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(tl!("After:")).small());
-                if ui.add(egui::DragValue::new(&mut a).speed(1.0).range(0.0..=1584.0).suffix(format!(" {}", tl!("pt")))).changed() {
-                    let _ = app.run("para.spacing", json!({"after": a}));
-                }
-            });
-            ui.end_row();
-        });
-    });
+    group(ui, "Paragraph", Some("para.dialog"), app, para_fields);
     group(ui, "Arrange", None, app, |ui, app| {
         big(ui, app, "position", "Position", "arrange.position", json!({}), false);
         wrap_menu(ui, app);
@@ -940,6 +899,81 @@ fn layout(app: &mut WordApp, ui: &mut Ui) {
             rotate_menu(ui, app, None);
         });
     });
+}
+
+/// Layout › Paragraph: indents and spacing as two rows of caption + field pairs.
+fn para_fields(ui: &mut Ui, app: &mut WordApp) {
+    let _ = para_fields_grid(ui, app);
+}
+
+/// The Paragraph group's grid. Captions and fields sit in their own columns, so the pairs line
+/// up on shared edges (Left and Right boxes on one column, Before and After equally wide).
+/// Returns each field's rect in draw order (Left, Before, Right, After) so tests can pin the
+/// geometry against the group title.
+fn para_fields_grid(ui: &mut Ui, app: &mut WordApp) -> [Rect; 4] {
+    let mut fields = [Rect::NOTHING; 4];
+    let Some(rp) = app.session.doc.para_at(&app.session.sel.focus).map(|p| app.session.doc.styles.resolve_para(&p.props)) else {
+        return fields;
+    };
+    // egui's Grid floors each row and column at `interact_size` (22 px here, which pushed the
+    // second row onto the title): 18 px rows keep the header and both field rows inside the
+    // group's content height; no column floor keeps the spacer column between the pairs empty.
+    // This ui is the Paragraph group's whole content, so the change stays local to the group.
+    ui.spacing_mut().interact_size = vec2(0.0, 18.0);
+    egui::Grid::new("layout_para").spacing(vec2(6.0, 2.0)).show(ui, |ui| {
+        ui.label(egui::RichText::new(tl!("Indent")).small().strong());
+        ui.label("");
+        ui.label("");
+        ui.label(egui::RichText::new(tl!("Spacing")).small().strong());
+        ui.label("");
+        ui.end_row();
+        let mut l = rp.indent_left / 72.0;
+        let mut b = rp.space_before;
+        ui.label(egui::RichText::new(tl!("Left:")).small());
+        let v = para_value(ui, egui::DragValue::new(&mut l).speed(0.05).range(-11.0..=22.0).suffix("\"").max_decimals(2));
+        fields[0] = v.rect;
+        if v.changed() {
+            let _ = app.run("para.indents", json!({"left": l * 72.0}));
+        }
+        ui.label("");
+        ui.label(egui::RichText::new(tl!("Before:")).small());
+        let v = para_value(ui, egui::DragValue::new(&mut b).speed(1.0).range(0.0..=1584.0).suffix(format!(" {}", tl!("pt"))));
+        fields[1] = v.rect;
+        if v.changed() {
+            let _ = app.run("para.spacing", json!({"before": b}));
+        }
+        ui.end_row();
+        let mut r = rp.indent_right / 72.0;
+        let mut a = rp.space_after;
+        ui.label(egui::RichText::new(tl!("Right:")).small());
+        let v = para_value(ui, egui::DragValue::new(&mut r).speed(0.05).range(-11.0..=22.0).suffix("\"").max_decimals(2));
+        fields[2] = v.rect;
+        if v.changed() {
+            let _ = app.run("para.indents", json!({"right": r * 72.0}));
+        }
+        ui.label("");
+        ui.label(egui::RichText::new(tl!("After:")).small());
+        let v = para_value(ui, egui::DragValue::new(&mut a).speed(1.0).range(0.0..=1584.0).suffix(format!(" {}", tl!("pt"))));
+        fields[3] = v.rect;
+        if v.changed() {
+            let _ = app.run("para.spacing", json!({"after": a}));
+        }
+        ui.end_row();
+    });
+    fields
+}
+
+/// A Paragraph field box: 60 px wide and 18 px tall whatever the value, so the boxes share one
+/// size and the second row stays above the group title.
+fn para_value(ui: &mut Ui, dv: egui::DragValue) -> egui::Response {
+    ui.scope(|ui| {
+        let s = ui.spacing_mut();
+        s.interact_size = vec2(60.0, 18.0);
+        s.button_padding.y = 1.5;
+        ui.style_mut().drag_value_text_style = egui::TextStyle::Small;
+        ui.add(dv)
+    })
+    .inner
 }
 
 /// Arrange › Rotate: turn 90° either way or flip (the angle and mirroring, not the pixels).
@@ -1831,5 +1865,43 @@ mod tests {
         assert_eq!(resolve_tab("Picture Format", &["Home"]), "Home");
         assert_eq!(resolve_tab("Table Design", &["Home"]), "Home");
         assert_eq!(resolve_tab("Home", &["Home"]), "Home");
+    }
+
+    /// #654: the Layout › Paragraph fields sit fully above the group title and line up on
+    /// shared columns, at any window width.
+    #[test]
+    fn layout_paragraph_fields_fit_above_the_group_title_and_align() {
+        let ctx = egui::Context::default();
+        crate::theme::apply(&ctx, crate::theme::Appearance::Light);
+        crate::theme::install_fonts(&ctx);
+        let mut app = WordApp::new(Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+        for width in [1280.0, 960.0] {
+            let mut measured = None;
+            // Two frames: installed fonts apply from the second.
+            for frame in 0..2 {
+                let input =
+                    egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(width, 800.0))), ..Default::default() };
+                ctx.run_ui(input, |ui| {
+                    let start = ui.cursor().min;
+                    crate::widgets::group_titled(ui, "Paragraph", "Paragraph", None, &mut app, |ui, app| {
+                        let fields = para_fields_grid(ui, app);
+                        if frame == 1 {
+                            measured = Some((start, fields));
+                        }
+                    });
+                })
+                .drop_without_applying_deltas();
+            }
+            let (start, [left, before, right, after]) = measured.unwrap();
+            // Both rows stay inside the group's content area, above the 'Paragraph' title.
+            let title_top = start.y + CONTENT_H;
+            for (name, r) in [("Indent Left", left), ("Spacing Before", before), ("Indent Right", right), ("Spacing After", after)] {
+                assert!(r.top() >= start.y && r.bottom() <= title_top, "{name} field {r:?} leaves the content area (title at y {title_top})");
+            }
+            // The boxes share columns: one x-range per row pair, one width per column.
+            assert_eq!(left.x_range(), right.x_range(), "Indent boxes on different columns");
+            assert_eq!(before.width(), after.width(), "Spacing boxes of unequal width");
+            assert!(before.width() > 0.0, "no field boxes drawn");
+        }
     }
 }
