@@ -1096,7 +1096,8 @@ pub(crate) fn buttons(ui: &mut Ui, ok: &str) -> (bool, bool) {
             if ui.button(tl!("Cancel")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                 r.1 = true;
             }
-            let okb = ui.add(egui::Button::new(egui::RichText::new(ok).color(egui::Color32::WHITE)).fill(crate::theme::APP_COLOR));
+            let t = Tokens::get(ui.ctx());
+            let okb = ui.add(egui::Button::new(egui::RichText::new(ok).color(t.on_accent)).fill(t.accent));
             if okb.clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 r.0 = true;
             }
@@ -1858,7 +1859,8 @@ fn body(app: &mut WordApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let cancel = ui.button(tl!("Cancel"));
                     let dont_save = ui.button(tl!("Don't Save"));
-                    let save = ui.add(egui::Button::new(egui::RichText::new(tl!("Save")).color(egui::Color32::WHITE)).fill(crate::theme::APP_COLOR));
+                    let t = Tokens::get(ui.ctx());
+                    let save = ui.add(egui::Button::new(egui::RichText::new(tl!("Save")).color(t.on_accent)).fill(t.accent));
                     [(cancel, "cancel"), (dont_save, "dontSave"), (save, "save")]
                 })
                 .inner
@@ -2447,7 +2449,8 @@ fn close_button(ui: &mut Ui) -> bool {
     ui.add_space(8.0);
     let mut close = ui.input(|i| i.key_pressed(egui::Key::Escape));
     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-        close |= ui.add(egui::Button::new(egui::RichText::new(tl!("Close")).color(egui::Color32::WHITE)).fill(crate::theme::APP_COLOR)).clicked();
+        let t = Tokens::get(ui.ctx());
+        close |= ui.add(egui::Button::new(egui::RichText::new(tl!("Close")).color(t.on_accent)).fill(t.accent)).clicked();
     });
     close
 }

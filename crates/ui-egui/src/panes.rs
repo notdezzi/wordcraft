@@ -106,10 +106,11 @@ fn nav(app: &mut WordApp, ui: &mut Ui) {
                 let pre = p.text.get(from..a.off).unwrap_or("");
                 let hit = p.text.get(a.off..b.off).unwrap_or("");
                 let post = p.text.get(b.off..to).unwrap_or("");
+                let t = Tokens::get(ui.ctx());
                 let mut job = egui::text::LayoutJob::default();
                 let fmt = |c| egui::TextFormat { font_id: regular(12.0), color: c, ..Default::default() };
                 job.append(pre, 0.0, fmt(ui.visuals().text_color()));
-                job.append(hit, 0.0, egui::TextFormat { font_id: semibold(12.0), background: egui::Color32::from_rgb(0xFF, 0xF1, 0x76), color: egui::Color32::BLACK, ..Default::default() });
+                job.append(hit, 0.0, egui::TextFormat { font_id: semibold(12.0), background: t.find_result, color: t.find_result_ink, ..Default::default() });
                 job.append(post, 0.0, fmt(ui.visuals().text_color()));
                 job.wrap.max_width = ui.available_width();
                 if ui.add(egui::Button::new(job).frame(false)).clicked() {

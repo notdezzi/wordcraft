@@ -160,6 +160,11 @@ pub struct Tokens {
     pub selection: Color32,
     /// Find › Reading Highlight.
     pub find_highlight: Color32,
+    /// The opaque highlight of search results in the Navigation pane's results list (#656);
+    /// unlike [`Tokens::find_highlight`] it sits under text, so it pairs with an ink.
+    pub find_result: Color32,
+    /// Text ink on [`Tokens::find_result`].
+    pub find_result_ink: Color32,
     pub caret: Color32,
     pub page_shadow: Color32,
     /// Page tone of the gallery preview tiles (Styles, style sets, table styles, Manage Styles):
@@ -205,6 +210,8 @@ impl Tokens {
             status_bar: Color32::from_rgb(0xF0, 0xF0, 0xF0),
             selection: Color32::from_rgba_unmultiplied(0x3B, 0x5B, 0xDB, 0x48),
             find_highlight: Color32::from_rgba_unmultiplied(0xFF, 0xE0, 0x3D, 0x90),
+            find_result: Color32::from_rgb(0xFF, 0xF1, 0x76),
+            find_result_ink: Color32::BLACK,
             caret: Color32::BLACK,
             page_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x22),
             paper_tile: Color32::WHITE,
@@ -247,6 +254,8 @@ impl Tokens {
             status_bar: Color32::from_rgb(0x1F, 0x1F, 0x1F),
             selection: Color32::from_rgba_unmultiplied(0x7A, 0x93, 0xF0, 0x55),
             find_highlight: Color32::from_rgba_unmultiplied(0xC8, 0xA8, 0x00, 0x70),
+            find_result: Color32::from_rgb(0x8A, 0x6D, 0x1A),
+            find_result_ink: Color32::WHITE,
             caret: Color32::BLACK,
             page_shadow: Color32::from_rgba_unmultiplied(0, 0, 0, 0x60),
             paper_tile: Color32::from_rgb(0x4A, 0x50, 0x66),
@@ -580,5 +589,15 @@ mod tests {
     fn paper_tile_is_dimmed_in_the_dark_theme() {
         assert_ne!(Tokens::light().paper_tile, Tokens::dark().paper_tile);
         assert!(luminance(Tokens::dark().paper_tile) < 0.25 * luminance(Color32::WHITE));
+    }
+
+    /// The Navigation pane's search-result highlight and a dialog's primary button (the accent
+    /// fill with `on_accent` text) must stay readable in both themes (#656).
+    #[test]
+    fn find_result_and_dialog_primary_pass_contrast_in_both_themes() {
+        for t in [Tokens::light(), Tokens::dark()] {
+            assert!(contrast_ratio(t.find_result_ink, t.find_result) >= 4.5, "{t:?}: find_result_ink vs find_result");
+            assert!(contrast_ratio(t.on_accent, t.accent) >= 4.5, "{t:?}: dialog primary fill/text");
+        }
     }
 }
